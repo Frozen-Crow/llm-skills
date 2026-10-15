@@ -1,0 +1,11 @@
+{
+  "name": "frozen-crow-dev-standards",
+  "description": "Frozen Crow developer standards: monogit for all git work across repos, agent-vault for every credential.",
+  "version": "0.1.0",
+  "author": {
+    "name": "Frozen Crow",
+    "email": "eric@frozencrow.com"
+  },
+  "homepage": "https://monogit.com",
+  "keywords": ["frozen-crow", "standards", "monogit", "agent-vault", "git", "secrets"]
+}
