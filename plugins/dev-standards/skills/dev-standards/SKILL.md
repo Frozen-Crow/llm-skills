@@ -1,5 +1,5 @@
 ---
-name: frozen-crow-dev-standards
+name: dev-standards
 description: Frozen Crow developer standards — use monogit for all git work across repos and agent-vault for every credential. Use this skill whenever a Frozen Crow developer is doing coding work that touches git (branching, committing, pushing, opening PRs, checking repo status, cloning the workspace), needs an API key, token or other secret, is setting up a new machine or onboarding, or asks how the team does things — even if they don't mention monogit or agent-vault by name. Also use it when a .monogit.json file is present, or when you're about to write a secret into a .env file, config, code or chat.
 ---
 

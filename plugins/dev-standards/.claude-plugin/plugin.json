@@ -1,5 +1,5 @@
 {
-  "name": "frozen-crow-dev-standards",
+  "name": "dev-standards",
   "description": "Frozen Crow developer standards: monogit for all git work across repos, agent-vault for every credential.",
   "version": "0.1.0",
   "author": {
