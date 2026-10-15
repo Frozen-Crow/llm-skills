@@ -10,6 +10,21 @@
       "name": "dev-standards",
       "source": "./plugins/dev-standards",
       "description": "Frozen Crow developer standards: monogit for all git work across repos, agent-vault for every credential."
+    },
+    {
+      "name": "api-standards",
+      "source": "./plugins/api-standards",
+      "description": "Frozen Crow API standards: build every API on @frozencrow/api-core (Feathers 5, Koa, MongoDB) and add resources through its generators so auth, RBAC and tenant isolation come for free."
+    },
+    {
+      "name": "frontend-standards",
+      "source": "./plugins/frontend-standards",
+      "description": "Frozen Crow frontend standards: Nuxt or Next for SEO-driven marketing sites, Vue or React SPAs for app clients decoupled from the API, shared layouts and components built with Tailwind and Headless UI, and a Feathers client for api-core APIs."
+    },
+    {
+      "name": "wordpress-standards",
+      "source": "./plugins/wordpress-standards",
+      "description": "Frozen Crow WordPress standards: build and edit WordPress sites through WP MCP Connector; work directly on production for an initial build, and use a staging clone for large changes to a live site."
     }
   ]
 }

@@ -1,0 +1,11 @@
+{
+  "name": "wordpress-standards",
+  "description": "Frozen Crow WordPress standards: build and edit WordPress sites through WP MCP Connector; work directly on production for an initial build, and use a staging clone for large changes to a live site.",
+  "version": "0.1.0",
+  "author": {
+    "name": "Frozen Crow",
+    "email": "eric@frozencrow.com"
+  },
+  "homepage": "https://wpmcp.frozencrow.com",
+  "keywords": ["frozen-crow", "standards", "wordpress", "mcp", "page-builder", "elementor", "divi", "woocommerce", "staging"]
+}

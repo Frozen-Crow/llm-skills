@@ -80,7 +80,7 @@ Some agent-vault actions are deliberately gated on a human, and an agent doing t
 
 ### Route the model key too
 
-The Anthropic API key an agent runs on is usually the most valuable secret on the machine. Recommend routing it through the vault as well — the steps are in `references/agent-vault-setup.md`.
+The model API key an agent runs on (Anthropic, OpenAI, Gemini) is usually the most valuable secret on the machine. Recommend routing it through the vault as well — the steps are in `references/agent-vault-setup.md`.
 
 ## When something conflicts
 

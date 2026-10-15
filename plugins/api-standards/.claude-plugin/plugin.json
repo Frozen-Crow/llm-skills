@@ -1,0 +1,11 @@
+{
+  "name": "api-standards",
+  "description": "Frozen Crow API standards: build every API on @frozencrow/api-core (Feathers 5, Koa, MongoDB) and add resources through its generators so auth, RBAC and tenant isolation come for free.",
+  "version": "0.1.0",
+  "author": {
+    "name": "Frozen Crow",
+    "email": "eric@frozencrow.com"
+  },
+  "homepage": "https://api-core.frozencrow.com",
+  "keywords": ["frozen-crow", "standards", "api", "feathers", "mongodb", "multitenant", "rbac"]
+}

@@ -8,7 +8,7 @@ Source: https://github.com/CrimsonWorks-Inc/agent-vault (Apache-2.0). Once insta
 3. Install (walkthrough)
 4. Lock it down — passphrase first
 5. Add credentials and grant a session
-6. Connect Claude
+6. Connect your editor
 7. Route the model key
 8. Day-to-day and troubleshooting
 
@@ -78,13 +78,13 @@ agent-vault session create --cred gh --paths "/repos/<org>/**"
 ```
 Run either with no arguments for a wizard. Built-in kinds include `github`, `slack`, `anthropic`, `openai`, `google-genai` and generic `http`. Keep grants narrow: specific paths and methods rather than `/**` where possible.
 
-## 6. Connect Claude
+## 6. Connect your editor
 
-**Claude Code (recommended):**
+**MCP (recommended):**
 ```bash
-agent-vault mcp install --agent claude-code
+agent-vault mcp install --agent claude-code   # or: cursor, gemini, codex
 ```
-Merges into the config (keeps a backup; safe to rerun). `--scope project|user` picks the file, `--print` shows the block without writing. Claude gains `vault_status`, `vault_list_creds`, `vault_get_placeholder`, `vault_http`, `vault_explain_denial`, `vault_request_session`.
+This merges into that editor's config (it keeps a backup and is safe to rerun). `--scope project|user` picks the file, and `--print` shows the block without writing, which you can paste into any other MCP-capable editor. The agent gains `vault_status`, `vault_list_creds`, `vault_get_placeholder`, `vault_http`, `vault_explain_denial` and `vault_request_session`.
 
 **Anything that can make HTTP requests:**
 ```bash

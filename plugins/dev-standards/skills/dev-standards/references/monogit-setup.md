@@ -6,7 +6,7 @@ Source: https://monogit.com · https://github.com/Frozen-Crow/monogit · npm `@f
 1. Requirements
 2. Install (walkthrough)
 3. Create or join a workspace
-4. Connect monogit to Claude (MCP)
+4. Connect monogit to your editor (MCP)
 5. Command reference
 6. `.monogit.json` reference
 
@@ -58,9 +58,9 @@ Then suggest committing `.monogit.json` wherever the team keeps it, so others ca
 
 Check it worked: `monogit status` should list every linked repo.
 
-## 4. Connect monogit to Claude (MCP)
+## 4. Connect monogit to your editor (MCP)
 
-For Claude Code, add to the project's `.mcp.json` (or user MCP config):
+Add this server to the editor's MCP config:
 ```json
 {
   "mcpServers": {
@@ -73,6 +73,20 @@ For Claude Code, add to the project's `.mcp.json` (or user MCP config):
 }
 ```
 No global install? Use `"command": "npx"`, `"args": ["-y", "@frozencrow/monogit", "mcp"]`.
+
+Where the block goes:
+
+- **Claude Code:** `.mcp.json` in the project
+- **Cursor:** `.cursor/mcp.json`
+- **Gemini CLI:** `.gemini/settings.json`
+- **Windsurf, Cline:** their MCP settings file
+
+These four all use the `mcpServers` shape above. The exceptions:
+
+- **VS Code (Copilot)** uses a `servers` key in `.vscode/mcp.json`.
+- **Codex** uses TOML (`[mcp_servers.monogit]` in `~/.codex/config.toml`).
+
+MCP config formats change often, so if the shape doesn't load, the editor's own MCP docs win.
 
 Tools it exposes: `monogit_status`, `monogit_list_repos`, `monogit_exec`, `monogit_commit`, `monogit_checkout`, `monogit_push`, `monogit_pull`, `monogit_show`, `monogit_tidy` (dry run unless `execute: true`), `monogit_pr`. All accept `only` / `except` / `group`.
 
