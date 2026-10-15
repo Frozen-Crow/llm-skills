@@ -23,7 +23,23 @@ Team skills for AI coding agents. Each skill is a standard [Agent Skills](https:
 /plugin install wordpress-standards@frozen-crow
 ```
 
-To get updates automatically, open `/plugin` → **Marketplaces** → `frozen-crow` → **Enable auto-update**. Otherwise run `/plugin marketplace update frozen-crow`.
+**Updates.** Third-party marketplaces don't auto-update by default.
+
+- **Claude app:** open the marketplace under **Customize → Plugins** and use **Check for updates**. Marketplaces added from GitHub also offer **Sync automatically**.
+- **Claude Code:** `/plugin` → **Marketplaces** → select `frozen-crow` → **Enable auto-update**. To update by hand, run `/plugin marketplace update frozen-crow`, then `/reload-plugins`.
+- **Toggle missing?** The option is hidden when `DISABLE_AUTOUPDATER`, `DISABLE_UPDATES` or `CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC` is set (for example, `DISABLE_AUTOUPDATER` is set inside the Claude desktop app's Code tab). Turn it on in `~/.claude/settings.json` instead. The env entry keeps plugin updates running while Claude Code's own updater stays off:
+
+  ```json
+  {
+    "env": { "FORCE_AUTOUPDATE_PLUGINS": "1" },
+    "extraKnownMarketplaces": {
+      "frozen-crow": {
+        "source": { "source": "github", "repo": "Frozen-Crow/llm-skills" },
+        "autoUpdate": true
+      }
+    }
+  }
+  ```
 
 **Cursor, GitHub Copilot, Codex, Gemini CLI, Windsurf, Cline, Zed and 60+ other agents:** use the [`skills` CLI](https://github.com/vercel-labs/skills), which needs Node 22.20 or newer:
 
