@@ -30,7 +30,7 @@ When walking someone through setup, go one step at a time: give the command, say
 
 ## Standard 1: monogit for git
 
-Inside a monogit workspace, use monogit instead of looping plain `git` over repos. Plain `git` inside a single repo is fine for read-only inspection (`git log` in one repo, `git blame`), but anything that changes branches, commits or remotes goes through monogit so every repo stays in step.
+Inside a monogit workspace, use monogit instead of looping plain `git` over repos. Plain `git` inside a single repo is fine for read-only inspection (`git log` in one repo, `git blame`), but anything that changes branches, commits or remotes goes through monogit so every repo stays in step. The exception is an Orca worktree: it holds a single repo outside the workspace folder, so commit there with plain git and add the run's `Monogit-Change-Id` trailer (see orchestration-standards).
 
 If the monogit MCP server is connected (tools named `monogit_status`, `monogit_commit`, etc.), prefer those tools over shelling out. Otherwise use the CLI.
 

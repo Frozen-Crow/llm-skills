@@ -25,6 +25,11 @@
       "name": "wordpress-standards",
       "source": "./plugins/wordpress-standards",
       "description": "Frozen Crow WordPress standards: build and edit WordPress sites through WP MCP Connector; work directly on production for an initial build, and use a staging clone for large changes to a live site."
+    },
+    {
+      "name": "orchestration-standards",
+      "source": "./plugins/orchestration-standards",
+      "description": "Frozen Crow orchestration standards: run multi-agent work through Orca with one worktree and one agent per piece of the product, a supervising coordinator, and a one-question preference check before anything starts."
     }
   ]
 }

@@ -8,6 +8,7 @@ Team skills for AI coding agents. Each skill is a standard [Agent Skills](https:
 | `api-standards` | Build every API on [@frozencrow/api-core](https://api-core.frozencrow.com) (Feathers 5, Koa, MongoDB) and add resources through its generators, so auth, RBAC and per-organization tenant isolation come for free. |
 | `frontend-standards` | Nuxt or Next for SEO-driven marketing sites, Vue or React SPAs for app clients decoupled from the API, shared layouts and components built with Tailwind and Headless UI, and a Feathers client (REST or websockets) for api-core APIs. |
 | `wordpress-standards` | Build WordPress sites through [WP MCP Connector](https://wpmcp.frozencrow.com). Working directly on production is fine for an initial build; large changes to a live site go through a staging clone. |
+| `orchestration-standards` | Run multi-agent work through [Orca](https://github.com/stablyai/orca): one worktree and one agent per piece of the product, a coordinator that plans, routes and reviews, and a one-question preference check before anything starts. Keeps monogit sub-repos registered and grouped in Orca. |
 
 ## Install
 
@@ -21,6 +22,7 @@ Team skills for AI coding agents. Each skill is a standard [Agent Skills](https:
 /plugin install api-standards@frozen-crow
 /plugin install frontend-standards@frozen-crow
 /plugin install wordpress-standards@frozen-crow
+/plugin install orchestration-standards@frozen-crow
 ```
 
 **Updates.** Third-party marketplaces don't auto-update by default.
@@ -80,6 +82,13 @@ plugins/
     .claude-plugin/plugin.json
     skills/wordpress-standards/
       SKILL.md
+  orchestration-standards/
+    .claude-plugin/plugin.json
+    skills/orchestration-standards/
+      SKILL.md
+      references/                      # preference check, worker briefs
+      scripts/workspace_map.py         # read-only product map: pieces, Orca repos, groups
+      scripts/change_id.py             # new Monogit-Change-Id for linked commits
 ```
 
 ## Releasing a change
