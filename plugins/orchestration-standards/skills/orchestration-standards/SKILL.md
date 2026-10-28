@@ -7,13 +7,14 @@ description: Frozen Crow orchestration standards for Orca — run multi-agent wo
 
 Orca runs our multi-agent work. Orca's own skills (`orca-cli` and `orchestration`, served version-matched by the `orca` binary) explain the mechanics. This skill sets Frozen Crow's policy on top of them: how work is split, where each agent runs, what the user decides, and how the pieces land together. If this skill and Orca's guide disagree on a command or flag, Orca's guide wins. On policy, this skill wins.
 
-Five rules:
+Six rules:
 
 1. **Orca does the orchestration.** Agents, worktrees and supervision go through the `orca` CLI. Don't use the editor's built-in subagents, raw `git worktree`, or ad hoc terminals.
 2. **One piece, one worktree, one agent.** Every piece of the product that changes gets its own Orca worktree, in its own repo, with its own agent. Two agents never share a checkout. Treat this as the user asking for separate worktrees, which Orca's guide otherwise only creates on request.
 3. **Ask once, then run.** Start with the preference check, which is one question and usually one click. After that, work without check-ins except at the approval points the user chose.
 4. **Contracts before code.** The coordinator settles the interfaces between pieces before workers start, so the pieces can be built in parallel.
 5. **The coordinator routes; workers build.** In a supervised run the coordinator plans, answers questions, reviews and integrates. It doesn't edit piece code.
+6. **Leave nothing running.** Orca doesn't close finished agents' terminals on its own, and idle ones pile up until the machine lags. The coordinator releases each worker as it finishes, sweeps before it reports, and clears leftovers before starting new work. See "Cleaning up stale workers".
 
 ## Step 0: Preflight
 
@@ -21,6 +22,7 @@ Five rules:
 2. **Check Orca is running** with `orca status --json`. If it isn't, run `orca open --json`.
 3. **Load Orca's guides** with `orca skills get orca-cli`, plus `orca skills get orchestration` for supervised runs. If Orca's skills aren't installed for this editor, `orca skills install` adds them.
 4. **Map the product** with `python3 scripts/workspace_map.py <path>`. It's read-only. It finds the workspace root, lists every piece, and checks that Orca has each one registered and grouped. Fix anything it reports before planning (Step 1).
+5. **Clear leftovers before adding more.** Run `python3 scripts/stale_terminals.py` and handle what it finds, as described in "Cleaning up stale workers". Release-now items need no question. If anything lands in Ask, raise it once, alongside the preference check.
 
 ## Step 1: Every piece registered and grouped
 
@@ -65,7 +67,10 @@ A small change to a single piece defaults to Solo. Don't assemble a team for a o
 
 ## Step 5: Supervise
 
-Run Orca's coordinator loop (`check --wait`, reply, validate each `worker_done`, then release). Frozen Crow adds:
+Run Orca's coordinator loop (`check --wait`, reply, validate each `worker_done`). Frozen Crow adds:
+
+- **Release as you go.** Right after accepting a worker's `worker_done`, run `orca orchestration worker-release --dispatch <id> --json`. The only exception is reusing that terminal for the worker's next task straight away. Never run `worker-retain` unless the user asked to keep a terminal open.
+- **Handle stale workers on evidence, not silence.** A worker is stale when Orca reports its agent `exited`, or when `worker-read` shows its last turn ended without a `worker_done`. Send it one nudge with `orca orchestration send --to dispatch:<id>`. If the next wait still brings nothing, run `worker-stop`, then retry with `--retry-of` or report the piece as failed. Idleness, a timeout or `unverifiable` liveness never justify stopping a worker on their own; that's Orca's safety rule.
 
 - **Answer from the plan.** Answer worker questions from the plan and contracts. Go to the user only for decisions their approval points reserve, or anything that changes scope, a contract, data or security. Use `orca orchestration gate-create` to block a task while the user decides.
 - **Contract changes go through the coordinator.** Approve the change, update the contract, and message every affected worker with `orca orchestration send --to dispatch:<id>`.
@@ -83,8 +88,24 @@ Run Orca's coordinator loop (`check --wait`, reply, validate each `worker_done`,
   ```
   Worktrees share their repo's history, so `monogit show <change id>` from the workspace root lists the whole change across repos.
 - **Open PRs** as the delivery preference says, for example draft PRs with `gh pr create --draft` from each worktree. Each PR links its sibling PRs and the change id. Record each PR on its workspace with `orca worktree set --worktree <id> --pr <number> --json`.
-- **Report.** Give the user, per piece: the outcome, the evidence (which tests ran), and the PR link. Add the change id and any open blockers.
-- **Clean up** as Orca's guide says: release settled workers. Keep worktrees until their PRs merge, and never remove a worktree with unpushed work.
+- **Sweep before you report.** Run `python3 scripts/stale_terminals.py --run <run id>` and clear it as described in "Cleaning up stale workers". Don't end the coordinator turn while this run still has release-now or recover items.
+- **Report.** Give the user, per piece: the outcome, the evidence (which tests ran), and the PR link. Add the change id, any open blockers, and what was closed or is still running.
+- **Keep the worktrees.** Leave them until their PRs merge, and never remove a worktree that has unpushed work. Closing terminals doesn't touch worktrees.
+- **Hand off runs can't clean up.** No coordinator stays behind, so tell the user the agents' terminals stay open until they close them or the next orchestration's sweep offers to.
+
+## Cleaning up stale workers
+
+`scripts/stale_terminals.py` is read-only. It checks every orchestration run and every live terminal, then sorts the terminals into five groups. Pass `--run <id>` to check one run only, or `--idle-hours <n>` to change the idle threshold (the default is 6 hours).
+
+| Group | What it is | What to do |
+|---|---|---|
+| **Release now** | Settled workers Orca still owes a release | Run the printed `worker-release` commands. No question needed. |
+| **Recover** | Releases that are pending or have an unknown outcome | Run the printed recovery command. Never substitute `terminal close`. |
+| **Ask** | Settled workers whose terminals Orca retained, usually because the user clicked into them (`user_takeover`), plus orphaned terminals with no tab | Ask once, as a batch: "Close 12 finished-worker terminals?" Under `cleanup: auto` (see the preferences reference), close those idle for an hour or more without asking. Close them one at a time with the printed `terminal close --terminal <handle>` command. If a handle is stale, re-run the audit and skip it. |
+| **Idle** | Idle terminals no run owns: hand-off agents, setup shells, default tabs | List them in the report. Close only the ones the user names. These can be deliberate, so `cleanup: auto` never touches them. |
+| **Keep** | Active workers, live workers the user took over, and terminals Orca didn't create | Leave them. |
+
+Never run `orca terminal close --worktree <id> --all` or `orca orchestration reset` as cleanup. The first wipes a workspace's tabs and resume records, and the second destroys the coordination state.
 
 ## Rules for every worker
 

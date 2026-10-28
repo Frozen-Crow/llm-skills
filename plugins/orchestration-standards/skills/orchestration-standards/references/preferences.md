@@ -36,6 +36,14 @@ Then ask one more: **Remember these?** Options: for this workspace, for all work
 
 Don't ask about models or effort. Pass them only when the user names them.
 
+## Cleanup question (only when the sweep finds something to ask about)
+
+If the stale-terminal sweep has items in its Ask group, ask about them in the same round as the question above:
+
+**Close N terminals from finished workers?** Options: Yes · Always (don't ask again) · Not now
+
+"Always" saves `"cleanup": "auto"` to the default profile. From then on, terminals from finished workers that have been idle for an hour or more close without asking. Idle terminals that no run owns are never closed automatically.
+
 ## 4. Defaults
 
 When nothing is saved or said:
@@ -46,6 +54,7 @@ When nothing is saved or said:
 - **approval:** `["plan"]`
 - **delivery:** `draft-prs`
 - **maxWorkers:** 5
+- **cleanup:** `ask`
 
 ## 5. Saved file
 
@@ -59,7 +68,8 @@ When nothing is saved or said:
     "review": "reviewer",
     "approval": ["plan"],
     "delivery": "draft-prs",
-    "maxWorkers": 5
+    "maxWorkers": 5,
+    "cleanup": "ask"
   },
   "workspaces": {
     "/Users/me/Projects/acme": { "workers": { "*": "codex" } }
@@ -75,5 +85,6 @@ When nothing is saved or said:
 | `approval` | Any of `"plan"` and `"prs"`. Empty means fully autonomous. |
 | `delivery` | `draft-prs`, `prs`, `branches` |
 | `maxWorkers` | Maximum workers running at once |
+| `cleanup` | `ask` asks before closing finished workers' retained terminals. `auto` closes those idle for an hour or more. |
 
 Write the file only when the user chose to remember their answers. Merge into the existing file rather than replacing it, and leave other workspaces' entries untouched.

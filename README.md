@@ -89,6 +89,7 @@ plugins/
       references/                      # preference check, worker briefs
       scripts/workspace_map.py         # read-only product map: pieces, Orca repos, groups
       scripts/change_id.py             # new Monogit-Change-Id for linked commits
+      scripts/stale_terminals.py       # read-only audit of idle and stale agent terminals
 ```
 
 ## Releasing a change
