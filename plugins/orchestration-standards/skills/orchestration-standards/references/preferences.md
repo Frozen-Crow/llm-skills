@@ -14,7 +14,7 @@ Ask with the editor's multiple-choice question tool if it has one. Otherwise sen
 
 **How should I run this?**
 
-1. **Recommended:** a one-line summary of the resolved profile, for example: "Supervised team: a Claude worker per piece (api, client), you approve the plan, a reviewer checks each piece, draft PRs."
+1. **Recommended:** a one-line summary of the resolved profile, with the agents the scoreboard picked, for example: "Supervised team: api → Codex, client → Gemini (trial), each reviewed by a different agent; you approve the plan; draft PRs."
 2. **Solo:** one agent in one worktree.
 3. **Hand off:** start one agent per piece and leave them to it, with no supervision.
 4. **Customize**
@@ -27,14 +27,16 @@ Ask these together:
 
 | Question | Options (first is the default) |
 |---|---|
-| Workers | Same agent as me for every piece · Claude for every piece · Codex for every piece · Mix (say which piece gets which agent) |
+| Workers | Route by the scoreboard (a mixed team, best agent per task type) · One agent for everything (name it) · Choose per piece |
 | Review | A reviewer agent checks each piece · I review the diffs myself · No review |
 | Approval | Approve the plan before workers start · Approve before PRs open · Both · Fully autonomous |
 | Delivery | Draft PR per piece · Ready-for-review PR per piece · Commits on branches only |
 
 Then ask one more: **Remember these?** Options: for this workspace, for all workspaces, or just this once.
 
-Don't ask about models or effort. Pass them only when the user names them.
+Don't ask about models or effort. Pass them only when the user names them, in the request or in the saved `models` map.
+
+Never offer "the agent I'm running as" as a default or a shortcut. Routing by the scoreboard is how the team learns which agent is best at what.
 
 ## Cleanup question (only when the sweep finds something to ask about)
 
@@ -49,7 +51,9 @@ If the stale-terminal sweep has items in its Ask group, ask about them in the sa
 When nothing is saved or said:
 
 - **shape:** `auto` (Solo or Supervised team, by size)
-- **workers:** the agent you are running as, for every piece
+- **workers:** `auto`, which routes by the scoreboard
+- **agents:** every agent CLI installed on this machine (confirm the list with the user the first time, then save it)
+- **explore:** `true` (one trial per wave)
 - **review:** `reviewer`
 - **approval:** `["plan"]`
 - **delivery:** `draft-prs`
@@ -64,7 +68,10 @@ When nothing is saved or said:
 {
   "default": {
     "shape": "auto",
-    "workers": { "*": "claude", "api": "codex" },
+    "agents": ["claude", "codex", "gemini", "grok", "cursor"],
+    "workers": "auto",
+    "models": { "codex": "gpt-6-astra" },
+    "explore": true,
     "review": "reviewer",
     "approval": ["plan"],
     "delivery": "draft-prs",
@@ -72,7 +79,7 @@ When nothing is saved or said:
     "cleanup": "ask"
   },
   "workspaces": {
-    "/Users/me/Projects/acme": { "workers": { "*": "codex" } }
+    "/Users/me/Projects/acme": { "workers": { "api": "codex" } }
   }
 }
 ```
@@ -80,7 +87,10 @@ When nothing is saved or said:
 | Key | Values |
 |---|---|
 | `shape` | `auto`, `supervised`, `solo`, `handoff` |
-| `workers` | Piece name → Orca agent id (`claude`, `codex`, `cursor`, …). `*` covers every other piece. |
+| `agents` | The roster the scoreboard chooses from: Orca agent ids (`claude`, `codex`, `gemini`, `grok`, `cursor`, `antigravity`, …) |
+| `workers` | `auto` routes every piece by the scoreboard. A map of piece name → agent id pins those pieces, and `*` pins every other piece. Pinned pieces are still recorded. |
+| `models` | Agent id → model id to pass with `--model`. Leave an agent out to use its own default. |
+| `explore` | `true` gives one piece per wave to an agent with little evidence on that task type. `false` always takes the current leader. |
 | `review` | `reviewer`, `coordinator`, `none` |
 | `approval` | Any of `"plan"` and `"prs"`. Empty means fully autonomous. |
 | `delivery` | `draft-prs`, `prs`, `branches` |

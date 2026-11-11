@@ -1,13 +1,13 @@
 ---
 name: orchestration-standards
-description: Frozen Crow orchestration standards for Orca — run multi-agent work through Orca with one worktree and one agent per piece of the product (api, client, marketing, mobile, shared), a coordinator that plans, routes and reviews, and a one-question preference check before anything starts. Use this skill whenever a Frozen Crow developer starts a feature or task that spans more than one repo or piece of a product, asks to spin up, coordinate, supervise or hand work off to agents, mentions Orca, worktrees, a coordinator or a team of agents, or says "orchestrate", "parallelize" or "split this up" — even with no other instructions. Also use it when a .monogit.json workspace is present and the work is bigger than one small change.
+description: Frozen Crow orchestration standards for Orca — run multi-agent work through Orca with one worktree and one agent per piece of the product (api, client, marketing, mobile, shared), a coordinator that plans, routes and reviews, a shared scoreboard that assigns each task to whichever agent (Claude, Codex, Gemini, Grok, Cursor…) does it best rather than the coordinator's own vendor, and a one-question preference check before anything starts. Use this skill whenever a Frozen Crow developer starts a feature or task that spans more than one repo or piece of a product, asks to spin up, coordinate, supervise or hand work off to agents, mentions Orca, worktrees, a coordinator or a team of agents, or says "orchestrate", "parallelize" or "split this up" — even with no other instructions. Also use it when a .monogit.json workspace is present and the work is bigger than one small change.
 ---
 
 # Frozen Crow Orchestration Standards
 
 Orca runs our multi-agent work. Orca's own skills (`orca-cli` and `orchestration`, served version-matched by the `orca` binary) explain the mechanics. This skill sets Frozen Crow's policy on top of them: how work is split, where each agent runs, what the user decides, and how the pieces land together. If this skill and Orca's guide disagree on a command or flag, Orca's guide wins. On policy, this skill wins.
 
-Six rules:
+Seven rules:
 
 1. **Orca does the orchestration.** Agents, worktrees and supervision go through the `orca` CLI. Don't use the editor's built-in subagents, raw `git worktree`, or ad hoc terminals.
 2. **One piece, one worktree, one agent.** Every piece of the product that changes gets its own Orca worktree, in its own repo, with its own agent. Two agents never share a checkout. Treat this as the user asking for separate worktrees, which Orca's guide otherwise only creates on request.
@@ -15,6 +15,7 @@ Six rules:
 4. **Contracts before code.** The coordinator settles the interfaces between pieces before workers start, so the pieces can be built in parallel.
 5. **The coordinator routes; workers build.** In a supervised run the coordinator plans, answers questions, reviews and integrates. It doesn't edit piece code.
 6. **Leave nothing running.** Orca doesn't close finished agents' terminals on its own, and idle ones pile up until the machine lags. The coordinator releases each worker as it finishes, sweeps before it reports, and clears leftovers before starting new work. See "Cleaning up stale workers".
+7. **Route by evidence, not loyalty.** Agents favor their own vendor: Claude picks Claude, Codex picks Codex. That wastes the team and teaches us nothing. The coordinator doesn't choose agents by preference. The scoreboard script assigns them, and every result is recorded so we learn which agent is best at each kind of task. See "Choosing agents".
 
 ## Step 0: Preflight
 
@@ -51,7 +52,8 @@ A small change to a single piece defaults to Solo. Don't assemble a team for a o
 - **Order only what must be ordered.** A change to a shared package runs first, and the pieces that consume it depend on it. Everything else runs in one parallel wave. Keep dependency chains to three steps or fewer.
 - **Name the change once.** Pick one short kebab-case name, like `invoice-export`. Every piece's worktree uses it, and Orca turns the name into the branch, so every repo gets the same branch. Generate one change id with `python3 scripts/change_id.py`. Every commit in every piece carries it.
 - **Brief each worker** using `references/worker-brief.md`. A brief must be self-contained, because workers never see this conversation. Never put secrets in a brief.
-- **Plan approval.** If the user chose it, show the plan (pieces, contracts, order, agents) and wait.
+- **Assign agents with the scoreboard.** Give each piece a task type, then let `scripts/scoreboard.py suggest` pick its builder and reviewer, as described in "Choosing agents". Even in Solo, the solo agent comes from the scoreboard.
+- **Plan approval.** If the user chose it, show the plan (pieces, contracts, order, agents and why each was picked) and wait.
 
 ## Step 4: Launch
 
@@ -62,7 +64,8 @@ A small change to a single piece defaults to Solo. Don't assemble a team for a o
 | Solo | `orca worktree create --repo id:<piece repo id> --name <change-name> --agent <agent> --prompt "<brief>" --json`, or work in the current worktree if the user prefers. |
 
 - **Start the whole ready wave before waiting.** Run at most one worker per changed piece, and no more than five at a time unless the user asks for more.
-- **Model and effort:** pass `--model` and `--effort` only when the user named them.
+- **Use the assigned agent.** `--agent` is the builder the scoreboard picked for that piece.
+- **Model and effort:** pass `--model` and `--effort` only when the user named them, either in the request or in the `models` map of their saved preferences. Otherwise each agent runs its own default.
 - **Failed launch:** if `worker-start` exits non-zero, don't relaunch. Follow Orca's `recovery-and-cleanup` reference.
 
 ## Step 5: Supervise
@@ -75,7 +78,7 @@ Run Orca's coordinator loop (`check --wait`, reply, validate each `worker_done`)
 - **Answer from the plan.** Answer worker questions from the plan and contracts. Go to the user only for decisions their approval points reserve, or anything that changes scope, a contract, data or security. Use `orca orchestration gate-create` to block a task while the user decides.
 - **Contract changes go through the coordinator.** Approve the change, update the contract, and message every affected worker with `orca orchestration send --to dispatch:<id>`.
 - **Keep the sidebar current.** Update each workspace's comment at checkpoints with `orca worktree set --worktree <id> --comment "<status>" --json`.
-- **Review**, if it's on: once a piece's builder settles, start a reviewer in that piece's worktree (`--worktree id:<worktree id>`) with the reviewer brief. Reviewers don't edit. Send their findings back to the builder by reusing its terminal.
+- **Review**, if it's on: once a piece's builder settles, start the reviewer the scoreboard picked in that piece's worktree (`--worktree id:<worktree id>`), using the reviewer brief. The reviewer is never the same agent as the builder, so each agent's blind spots get a second opinion. Reviewers don't edit. Send their findings back to the builder by reusing its terminal.
 - **Integrate.** After every piece settles, run the cross-piece check: build and test each piece, and exercise the contract end to end, such as the client against the API. Send any fix to the piece's worker; don't make it yourself.
 - **Silence isn't failure.** Timeouts and empty waits are checkpoints, as Orca's guide says.
 
@@ -89,9 +92,47 @@ Run Orca's coordinator loop (`check --wait`, reply, validate each `worker_done`)
   Worktrees share their repo's history, so `monogit show <change id>` from the workspace root lists the whole change across repos.
 - **Open PRs** as the delivery preference says, for example draft PRs with `gh pr create --draft` from each worktree. Each PR links its sibling PRs and the change id. Record each PR on its workspace with `orca worktree set --worktree <id> --pr <number> --json`.
 - **Sweep before you report.** Run `python3 scripts/stale_terminals.py --run <run id>` and clear it as described in "Cleaning up stale workers". Don't end the coordinator turn while this run still has release-now or recover items.
-- **Report.** Give the user, per piece: the outcome, the evidence (which tests ran), and the PR link. Add the change id, any open blockers, and what was closed or is still running.
+- **Record every result** with `scripts/scoreboard.py record`, once per builder and once per reviewer, as described in "Choosing agents". Do this before reporting, including for failed pieces, because failures are evidence too.
+- **Report.** Give the user, per piece: the outcome, the evidence (which tests ran), the PR link, and which agent built and reviewed it. Add the change id, any open blockers, what was closed or is still running, and the current leaders for the task types this run touched (`scripts/scoreboard.py summary --task-type <type>`).
 - **Keep the worktrees.** Leave them until their PRs merge, and never remove a worktree that has unpushed work. Closing terminals doesn't touch worktrees.
 - **Hand off runs can't clean up.** No coordinator stays behind, so tell the user the agents' terminals stay open until they close them or the next orchestration's sweep offers to.
+
+## Choosing agents
+
+The goal is to share the work across every available agent and find out, from results, which one is best at each kind of task. Your own vendor is not evidence.
+
+**1. Tag each piece with a task type.** Use one of: `api`, `ui`, `mobile`, `shared`, `wordpress`, `bugfix`, `tests`, `refactor`, `infra`, `docs`, `design`. Pick by what the work mostly is. A fix to a client bug is `bugfix`, not `ui`.
+
+**2. Ask the scoreboard:**
+
+```bash
+python3 scripts/scoreboard.py suggest --pieces api=api,client=ui,shared=shared --self <your agent id>
+```
+
+`--self` is the agent you're running as (`claude`, `codex`, `gemini`, `grok`, `cursor`…). Leave out pieces the user pinned to an agent (the `workers` map in saved preferences), and pass `--no-explore` when the saved `explore` is `false`. The script picks a builder and a reviewer for every piece and explains each pick:
+
+- **Roster.** It uses the `agents` list in your saved preferences, or else the agent CLIs installed on this machine. It skips any agent at 90% or more of an Orca rate limit.
+- **Best score wins.** Score is the success rate on that task type. Clean first-time passes count fully; passes that needed a retry or had blocking review findings count half. Agents with no history start at 0.5.
+- **Ties never go to the coordinator's own agent.** It only gets the work by winning outright.
+- **One trial per wave.** One piece goes to an agent with fewer than three results on that task type, so every agent keeps getting measured.
+- **Mixed waves.** A wave of two or more pieces uses at least two agents, unless one agent leads clearly on every piece.
+- **Different reviewers.** A piece's reviewer is never its builder's agent.
+
+**3. Use the picks.** Don't override them out of familiarity. Only two things change a pick: the user's explicit choice (in the request or saved preferences), or a hard constraint the script can't see, such as an agent failing to start. If you override a pick, say why in the plan.
+
+**4. Record every result** once the piece settles, after review and fixes:
+
+```bash
+python3 scripts/scoreboard.py record --task-type api --agent codex --model <effective model or omit> \
+  --outcome succeeded --retries 0 --blocking 1 --minor 2 --minutes 38 --piece api --run <run id> --dispatch <id>
+python3 scripts/scoreboard.py record --role reviewer --task-type api --agent gemini --outcome succeeded --accepted 2
+```
+
+- **Model:** take it from `orca orchestration worker-show --dispatch <id> --json` (`worker.startOptions.launch.effective.model`). Omit it when that's null, meaning the agent's default.
+- **Builder findings:** `--blocking` and `--minor` count the review findings the builder had to fix.
+- **Reviewer value:** `--accepted` is how many of the reviewer's findings the builder agreed with.
+- **Trials:** add `--explore` when the pick was a trial.
+- **Storage:** results go to `~/.frozencrow/agent-scoreboard.jsonl`. To pool results across the team, point `FROZENCROW_SCOREBOARD` at a shared file.
 
 ## Cleaning up stale workers
 

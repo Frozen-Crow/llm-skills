@@ -1,10 +1,10 @@
 {
   "name": "orchestration-standards",
-  "description": "Frozen Crow orchestration standards: run multi-agent work through Orca with one worktree and one agent per piece of the product, a supervising coordinator, and a one-question preference check before anything starts.",
-  "version": "0.2.0",
+  "description": "Frozen Crow orchestration standards: run multi-agent work through Orca with one worktree and one agent per piece of the product, a supervising coordinator, a shared scoreboard that routes each task to whichever agent does it best, and a one-question preference check before anything starts.",
+  "version": "0.3.0",
   "author": {
     "name": "Frozen Crow",
     "email": "eric@frozencrow.com"
   },
-  "keywords": ["frozen-crow", "standards", "orca", "orchestration", "multi-agent", "worktrees", "monogit"]
+  "keywords": ["frozen-crow", "standards", "orca", "orchestration", "multi-agent", "worktrees", "monogit", "routing", "scoreboard"]
 }
