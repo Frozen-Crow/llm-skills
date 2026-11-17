@@ -23,7 +23,8 @@ Seven rules:
 2. **Check Orca is running** with `orca status --json`. If it isn't, run `orca open --json`.
 3. **Load Orca's guides** with `orca skills get orca-cli`, plus `orca skills get orchestration` for supervised runs. If Orca's skills aren't installed for this editor, `orca skills install` adds them.
 4. **Map the product** with `python3 scripts/workspace_map.py <path>`. It's read-only. It finds the workspace root, lists every piece, and checks that Orca has each one registered and grouped. Fix anything it reports before planning (Step 1).
-5. **Clear leftovers before adding more.** Run `python3 scripts/stale_terminals.py` and handle what it finds, as described in "Cleaning up stale workers". Release-now items need no question. If anything lands in Ask, raise it once, alongside the preference check.
+5. **Make sure every agent trusts the folders it will work in.** Run `python3 scripts/agent_trust.py check --workspace <path>`. It's read-only, and covers the product's root and the folder Orca puts worktrees in. If anything is untrusted, handle it as described in "Trust and permissions" before any worker starts.
+6. **Clear leftovers before adding more.** Run `python3 scripts/stale_terminals.py` and handle what it finds, as described in "Cleaning up stale workers". Release-now items need no question. If anything lands in Ask, raise it once, alongside the preference check.
 
 ## Step 1: Every piece registered and grouped
 
@@ -73,6 +74,7 @@ A small change to a single piece defaults to Solo. Don't assemble a team for a o
 Run Orca's coordinator loop (`check --wait`, reply, validate each `worker_done`). Frozen Crow adds:
 
 - **Release as you go.** Right after accepting a worker's `worker_done`, run `orca orchestration worker-release --dispatch <id> --json`. The only exception is reusing that terminal for the worker's next task straight away. Never run `worker-retain` unless the user asked to keep a terminal open.
+- **Unstick trust prompts by fixing trust, never by answering them.** If `worker-read` shows a worker sitting at a "trust this folder?" prompt, don't type an answer into its terminal. Fix the trust as described in "Trust and permissions", then `worker-stop` it and relaunch with `--retry-of`, giving the same placement explicitly. A restart is needed anyway: Gemini decides its approval mode at startup, so a session that began untrusted keeps asking before every command even after the folder is trusted.
 - **Handle stale workers on evidence, not silence.** A worker is stale when Orca reports its agent `exited`, or when `worker-read` shows its last turn ended without a `worker_done`. Send it one nudge with `orca orchestration send --to dispatch:<id>`. If the next wait still brings nothing, run `worker-stop`, then retry with `--retry-of` or report the piece as failed. Idleness, a timeout or `unverifiable` liveness never justify stopping a worker on their own; that's Orca's safety rule.
 
 - **Answer from the plan.** Answer worker questions from the plan and contracts. Go to the user only for decisions their approval points reserve, or anything that changes scope, a contract, data or security. Use `orca orchestration gate-create` to block a task while the user decides.
@@ -133,6 +135,25 @@ python3 scripts/scoreboard.py record --role reviewer --task-type api --agent gem
 - **Reviewer value:** `--accepted` is how many of the reviewer's findings the builder agreed with.
 - **Trials:** add `--explore` when the pick was a trial.
 - **Storage:** results go to `~/.frozencrow/agent-scoreboard.jsonl`. To pool results across the team, point `FROZENCROW_SCOREBOARD` at a shared file.
+
+## Trust and permissions
+
+Agents won't work freely in a folder they don't trust. Trust problems also look like other problems:
+
+- **A stuck worker that looks busy.** An agent that doesn't trust its folder stops at a trust prompt, and Orca still reports the worker as live.
+- **Gemini prompting for every command.** If Gemini starts in a folder it doesn't trust, it quietly overrides Orca's `--yolo` and asks before every shell command for the rest of that session. A session that's trusted shows **YOLO** in its status bar.
+
+How each agent is covered:
+
+| Agent | Trust | What to do |
+|---|---|---|
+| Claude, Codex, Cursor, Antigravity, Copilot, Qoder | Orca trusts each new workspace before launch, while its workspace-trust setting is on (it is by default) | Nothing. If one of them still prompts, ask the developer to check that setting in Orca. |
+| Gemini | Not covered by Orca. Gemini reads `~/.gemini/trustedFolders.json`, where a folder rule also covers everything under it. | Ask once: "Gemini doesn't trust <paths>, so it would ask before every command. Trust them?" On yes, run `python3 scripts/agent_trust.py fix --workspace <path>`. On no, leave Gemini out of this run's roster (pass `--agents` without it to the scoreboard). |
+| Grok | No trust prompt. An untrusted folder only skips project-level Grok config. | Nothing. |
+| Anything else | Unknown | Watch its first launch for a trust prompt. |
+
+- **What the fix touches.** `agent_trust.py fix` only adds Gemini rules for the product's root and Orca's worktree folder. It backs up the file first and never removes a rule. These rules are persistent, so each machine needs them only once.
+- **Leave Orca's agent permission on "full access".** That's Orca's default, and it's what lets workers run commands without prompts: it launches Gemini with `--yolo`, Claude with `--dangerously-skip-permissions`, and so on. If one agent still prompts in a trusted folder, its per-agent override in Orca's settings may have been changed from the default. Ask the developer to check it; never edit Orca's state files.
 
 ## Cleaning up stale workers
 

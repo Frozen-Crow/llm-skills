@@ -91,6 +91,7 @@ plugins/
       scripts/change_id.py             # new Monogit-Change-Id for linked commits
       scripts/stale_terminals.py       # read-only audit of idle and stale agent terminals
       scripts/scoreboard.py            # routes tasks across agents by recorded results
+      scripts/agent_trust.py           # checks agent folder trust; adds missing Gemini rules
 ```
 
 ## Releasing a change
